@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-DEFAULT_VERSION=83
+DEFAULT_VERSION=81
 SPECIFIED_VERSION=$1
 
 LINUX_ZIP=chromedriver_linux64.zip
