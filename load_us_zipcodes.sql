@@ -1,3 +1,5 @@
+BEGIN;
+
 DROP SCHEMA IF EXISTS us CASCADE;
 CREATE SCHEMA us;
 
@@ -7,29 +9,23 @@ CREATE TABLE us.states (
   PRIMARY KEY (state_abbr)
 );
 
-CREATE TABLE us.cities AS (
+CREATE TABLE us.cities (
+  city_id SERIAL,
   city_name TEXT,
   state_abbr CHAR(2),
-  county_name TEXT
-  FOREIGN KEY state_abbr REFERENCES us.states (state_abbr),
-  PRIMARY KEY (state_abbr, city_name, county_name)
+  county_name TEXT,
+  FOREIGN KEY (state_abbr) REFERENCES us.states (state_abbr),
+  PRIMARY KEY (city_id),
+  UNIQUE (city_name, state_abbr, county_name)
 );
 
-CREATE TABLE us.zip_codes AS (
+CREATE TABLE us.zip_codes (
   zip_code CHAR(5),
-  city_name TEXT,
-  state_abbr CHAR(2),
-  FOREIGN KEY (city_name, state_abbr) REFERENCES us.cities (city_name, state_abbr),
-  PRIMARY KEY (zip_code)
-);
-
-CREATE TABLE us.zip_code_points AS (
+  city_id INT,
   location POINT,
-  zip_code,
-  FOREIGN KEY zip_code REFERENCES us.zip_codes (zip_code),
-  PRIMARY KEY (location, zip_code)
+  FOREIGN KEY (city_id) REFERENCES us.cities (city_id),
+  PRIMARY KEY (zip_code, city_id)
 );
-
 
 -- states
 INSERT INTO us.states
@@ -41,33 +37,44 @@ FROM
 ;
 
 -- cities
-INSERT INTO us.cities
+INSERT INTO us.cities (city_name, state_abbr, county_name)
 SELECT DISTINCT
-  city_name,
+  city,
   state_abbr,
-  county_name
+  county_area
 FROM
   temp_zip.us
+WHERE
+  state_abbr IS NOT NULL
+  AND county_area IS NOT NULL
 ;
 
 -- zip_codes
-INSERT INTO us.zip_codes
-SELECT DISTINCT
-  zip_code,
-  city_name,
-  state_abbr
-FROM
-  temp_us.zip_codes
-;
-
--- zip_code_points 
-INSERT INTO us.zip_code_points
+INSERT INTO us.zip_codes (zip_code, city_id, location)
+WITH distinct_points AS (
+  SELECT DISTINCT
+    a.zipcode,
+    b.city_id,
+    longitude,
+    latitude
+  FROM
+    temp_zip.us a
+    JOIN us.cities b
+      ON a.city = b.city_name
+      AND a.state_abbr = b.state_abbr
+      AND a.county_area = b.county_name
+  WHERE
+    longitude IS NOT NULL
+    AND latitude IS NOT NULL
+  )
 SELECT
-  POINT(longitude, latitude) as location,
-  zip_code
+  zipcode,
+  city_id,
+  POINT(longitude, latitude)
 FROM
-  temp_us.zip_codes
+  distinct_points a
 ;
 
+CREATE INDEX ON us.zip_codes USING GIST(location);
 
-CREATE INDEX ON us.zip_codes (location) USING GIST(location);
+COMMIT;
