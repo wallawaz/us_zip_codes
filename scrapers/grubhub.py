@@ -57,7 +57,7 @@ class GrubHubScraper(BaseScraper):
             kwargs["token_expire_time"]
         )
         self.session.headers.update(
-            self._get_headers(token_dict["access_token"])
+            self._get_headers(kwargs["access_token"])
         )
 
     def search(self, longitude, latitude, page_size=20, page_num=0):
