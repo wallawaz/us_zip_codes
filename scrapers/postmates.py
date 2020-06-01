@@ -1,0 +1,2 @@
+class PostMatesScraper(BaseScraper):
+    pass
