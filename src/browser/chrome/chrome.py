@@ -2,7 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
-class HeadlessChrome:
+class HeadlessChrome(webdriver.Chrome):
 
     CAPS = DesiredCapabilities.CHROME
     CAPS['loggingPrefs'] = {'performance': 'ALL'}
@@ -13,7 +13,7 @@ class HeadlessChrome:
     OPTIONS.add_experimental_option('w3c', False)
 
     def __init__(self):
-        self.browser = webdriver.Chrome(
+        super().__init__(
             chrome_options=self.OPTIONS,
             desired_capabilities=self.CAPS,
         )

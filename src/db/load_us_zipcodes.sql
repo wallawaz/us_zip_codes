@@ -26,10 +26,7 @@ CREATE TABLE us.zip_codes (
   FOREIGN KEY (city_id) REFERENCES us.cities (city_id),
   PRIMARY KEY (zip_code, city_id)
 );
-<<<<<<< HEAD
-COMMENT ON COLUMN us.zip_codes.location is '[longitude,latitude]';
-=======
->>>>>>> 546b2bb022bbc81ab9186e25d0693f27f4fd553b
+COMMENT ON COLUMN us.zip_codes.location is '(longitude,latitude)';
 
 -- states
 INSERT INTO us.states

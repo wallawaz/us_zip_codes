@@ -2,3 +2,5 @@
 venv
 *.pyc
 *driver
+config.yaml
+*.lock
