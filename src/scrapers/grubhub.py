@@ -10,7 +10,7 @@ class GrubHubScraper(BaseScraper):
     search_page = "https://api-gtm.grubhub.com/restaurants/search/search_listing"
 
     @staticmethod
-    def _get_headers(api_key:str) -> Dict[str, str]:
+    def _get_headers(api_key: str) -> Dict[str, str]:
         return {
             'authority': 'api-gtm.grubhub.com',
             'cache-control': 'max-age=0',
@@ -24,19 +24,16 @@ class GrubHubScraper(BaseScraper):
             'accept-language': 'en-US,en;q=0.9',
         }
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        for api_key in ("token_expire_time", "access_token", "browser"):
-            api_value = kwargs.get(api_key, None)
-            if api_value is None:
-                raise Exception(f"{api_key} needed for GrubHubScraper")
-            setattr(self, api_key, api_value)
+    def __init__(self, access_token, token_expire_time, *args, **kwargs):
+        self.access_token = access_token
+        self.token_expire_time = token_expire_time
+        super().__init__(*args, **kwargs)
 
         self.token_expire_time = self.timestamp_from_epoch_milliseconds(
             self.token_expire_time
         )
-        kwargs.get("headers", dict()).update(self._get_headers(self.api_key))
+        kwargs.get("headers", dict()).update(self._get_headers(self.access_token))
+
 
     def timestamp_from_epoch_milliseconds(self, ts: int) -> datetime:
         return datetime.fromtimestamp(ts // 1000)
@@ -55,13 +52,16 @@ class GrubHubScraper(BaseScraper):
         #    self._get_headers(kwargs["access_token"])
         #)
 
-    async def search(
-        self,
-        longitude: str,
-        latitude: str,
-        page_size: int=20,
-        page_num: int=0
-    ) -> Tuple[List[Dict[str, str]], bool]:
+
+    async def _search(self, headers, longitude, latitude, page_num, page_size):
+        params = self._get_params(longitude, latitude, page_num, page_size)
+        return await self.get_json(
+            self.search_page,
+            headers=headers,
+            params=params
+        )
+    
+    def _get_params(self, longitude, latitude, page_num, page_size):
         params = [
             ('orderMethod', 'delivery'),
             ('locationMode', 'DELIVERY'),
@@ -69,19 +69,38 @@ class GrubHubScraper(BaseScraper):
             ('pageSize', f'{page_size}'),
             ('hideHateos', 'true'),
             ('searchMetrics', 'true'),
-            ('location', f'POINT({longitude} {latitude})'),
+            ('location', f'POINT({longitude}%20{latitude})'),
             ('preciseLocation', 'true'),
             ('sortSetId', 'umamiv3'),
             ('countOmittingTimes', 'true'),
         ]
         if page_num > 0:
             params.append(('pageNum', f'{page_num}'))
+        return params
 
-        resp = self.get_json(self.search_page)
+    async def search(
+        self,
+        longitude: str,
+        latitude: str,
+        page_size: int=20,
+        page_num: int=0
+    ) -> List[Dict[str,str]]:
 
-        results = content['results']
-        pager = content['pager']
-        return (
-            content['results'],
-            pager['total_pages'] == pager['current_page']
-        )
+        headers = self._get_headers(self.access_token)
+        complete = False
+        search_results = []
+        while not complete:
+            resp = await self._search(headers, longitude, latitude, page_num, page_size)
+
+            search_results += resp.get("results", [])
+            pager = resp.get("pager", None)
+            
+            if pager is None:
+                break
+            print(f"grabbed: {len(resp.get('results', []))}, pager: {pager}")
+
+            complete = pager['total_pages'] == pager['current_page']
+            page_num += 1
+            self.random_sleep()
+
+        return search_results

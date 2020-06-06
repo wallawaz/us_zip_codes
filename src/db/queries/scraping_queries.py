@@ -18,3 +18,15 @@ WHERE
     )
     LIMIT 1
 """
+
+QUERY_RANDOM_ZIPCODE = """
+SELECT
+    location[0] as longitude,
+    location[1] as latitude,
+    zip_code
+FROM
+    us.zip_codes
+ORDER BY
+    RANDOM()
+LIMIT 1
+"""

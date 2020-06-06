@@ -5,6 +5,7 @@ from typing import List, Optional
 from aiohttp import ClientSession, ClientResponse
 from aiohttp.hdrs import METH_GET
 
+from .exceptions import AllRetriesFailed, Unsuccessful
 from .user_agents import USER_AGENTS
 
 
@@ -41,6 +42,9 @@ class BaseScraper(ClientSession):
 
     async def search(self):
         raise NotImplementedError
+
+    async def random_sleep(self):
+        await asyncio.sleep(random.choice(list(range(1,4))))
 
     async def _request(
         self,
@@ -89,7 +93,7 @@ class BaseScraper(ClientSession):
                     if not attempts:
                         delay = start_delay
                     else:
-                        delay = min(2 ** attempts)
+                        delay = 2 ** attempts
 
                     time_perc = delay * 0.2 // 1
                     delay += random.randint(-1 * time_perc, time_perc)

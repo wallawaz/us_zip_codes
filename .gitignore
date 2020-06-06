@@ -4,3 +4,4 @@ venv
 *driver
 config.yaml
 *.lock
+data

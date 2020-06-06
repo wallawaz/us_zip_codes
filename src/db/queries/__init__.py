@@ -1,1 +1,1 @@
-from scraping_queries import *
+from .scraping_queries import *
