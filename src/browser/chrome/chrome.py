@@ -12,7 +12,10 @@ class HeadlessChrome(webdriver.Chrome):
     OPTIONS.add_argument('headless')
     OPTIONS.add_experimental_option('w3c', False)
 
-    def __init__(self):
+    def __init__(self, proxy=None):
+        if proxy:
+            self.OPTIONS.add_argument(f"--proxy-server={proxy.host}:{proxy.port}")
+
         super().__init__(
             chrome_options=self.OPTIONS,
             desired_capabilities=self.CAPS,
